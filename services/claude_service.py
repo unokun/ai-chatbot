@@ -1,25 +1,21 @@
 import os
-from openai import AsyncOpenAI
+import asyncio
 from typing import List
-from pydantic import BaseModel
 import logging
+from anthropic import AsyncAnthropic
+from .openai_service import CorrectionVariant
 from .base_ai_service import BaseAIService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class CorrectionVariant(BaseModel):
-    text: str
-    type: str
-    reason: str
-
-class OpenAIService(BaseAIService):
+class ClaudeService(BaseAIService):
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-
-        self.client = AsyncOpenAI(api_key=api_key)
+            raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
+        
+        self.client = AsyncAnthropic(api_key=api_key)
     
     async def correct_japanese_text(self, text: str) -> List[CorrectionVariant]:
         system_prompt = """
@@ -45,21 +41,30 @@ JSON形式で回答してください：
 """
         
         try:
-            response = await self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"以下の文章を添削してください：\n{text}"}
-                ],
-                response_format={"type": "json_object"},
+            response = await self.client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=4000,
                 temperature=0.3,
-                max_tokens=10000
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": f"以下の文章を添削してください：\n{text}"}
+                ]
             )
-            content = response.choices[0].message.content
-            logging.info(f"Response: {content}")
-            # print(f"Content repr: {repr(content)}")
-
+            
+            content = response.content[0].text
+            logger.info(f"Claude response: {content}")
+            
             import json
+            # Extract JSON from response if it's wrapped in markdown code blocks
+            if "```json" in content:
+                start = content.find("```json") + 7
+                end = content.find("```", start)
+                content = content[start:end].strip()
+            elif "```" in content:
+                start = content.find("```") + 3
+                end = content.rfind("```")
+                content = content[start:end].strip()
+            
             result = json.loads(content)
             
             variants = []
@@ -73,14 +78,15 @@ JSON形式で回答してください：
             return variants
             
         except Exception as e:
+            logger.error(f"Claude API error: {str(e)}")
             return [
                 CorrectionVariant(
                     text=text,
                     type="error",
-                    reason=f"AI処理エラー: {str(e)}"
+                    reason=f"Claude AI処理エラー: {str(e)}"
                 )
             ]
     
     @property
     def model_name(self) -> str:
-        return "openai-gpt4o"
+        return "claude-3-sonnet"

@@ -5,12 +5,16 @@ import './CorrectionModal.css'
 
 interface CorrectionModalProps {
   originalText: string
+  userId?: string
+  preferredModel?: string
   onSelect: (correctedText: string) => void
   onClose: () => void
 }
 
 const CorrectionModal: React.FC<CorrectionModalProps> = ({
   originalText,
+  userId = 'anonymous',
+  preferredModel,
   onSelect,
   onClose
 }) => {
@@ -25,7 +29,9 @@ const CorrectionModal: React.FC<CorrectionModalProps> = ({
         setError(null)
         
         const response = await correctionAPI.correctText({
-          text: originalText
+          text: originalText,
+          user_id: userId,
+          preferred_model: preferredModel
         })
         
         setVariants(response.variants)

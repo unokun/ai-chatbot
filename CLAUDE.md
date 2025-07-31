@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an AI-powered Japanese message correction application with a LINE-style chat interface. The Phase 1 MVP implements typo correction and honorific/business language enhancement using OpenAI GPT-4o API integration.
+This is an AI-powered Japanese message correction application with a LINE-style chat interface. The application supports multiple AI models (OpenAI GPT-4o and Claude 3 Sonnet) for typo correction, honorific enhancement, and business language improvement.
 
 ## Development Commands
 
 ### Environment Setup
-- `cp .env.example .env` - Copy environment template (requires OPENAI_API_KEY)
+- `cp .env.example .env` - Copy environment template (requires OPENAI_API_KEY and ANTHROPIC_API_KEY)
 - `uv sync` - Install Python dependencies using uv
 - `npm install` - Install Node.js dependencies
 
@@ -30,53 +30,78 @@ This is an AI-powered Japanese message correction application with a LINE-style 
 
 ## Architecture Overview
 
+### Multi-AI Model Architecture
+The application uses an abstract factory pattern to support multiple AI providers:
+
+- **BaseAIService**: Abstract base class defining the interface for AI services
+- **AIModelFactory**: Factory class managing AI service instances with lazy loading
+- **OpenAIService** & **ClaudeService**: Concrete implementations for different AI providers
+- **CorrectionService**: Orchestrates AI calls, user preferences, and history management
+
 ### Backend Structure (Python FastAPI)
-- **main.py**: FastAPI application with CORS, API endpoints, and startup database initialization
-- **services/correction_service.py**: Main correction logic coordinator
-- **services/openai_service.py**: OpenAI GPT-4o integration with Japanese correction prompts
-- **database/models.py**: SQLAlchemy models for correction_history and user_settings tables
+- **main.py**: FastAPI application with CORS, multiple API endpoints, and database initialization
+- **services/correction_service.py**: Main correction coordinator with model selection logic
+- **services/ai_model_factory.py**: Factory for managing multiple AI model instances
+- **services/openai_service.py** & **services/claude_service.py**: AI provider implementations
+- **services/base_ai_service.py**: Abstract interface for AI services
+- **database/models.py**: SQLAlchemy models with user preferences and correction history
 
 ### Frontend Structure (React + TypeScript)
-- **src/App.tsx**: Main application component
-- **src/components/ChatInterface.tsx**: Main chat container with message state management
+- **src/components/ChatInterface.tsx**: Main container with header, model selector, and history access
+- **src/components/ModelSelector.tsx**: Dropdown component for AI model selection with user preferences
+- **src/components/CorrectionHistory.tsx**: Modal displaying paginated correction history
+- **src/components/CorrectionModal.tsx**: Modal showing 3 AI-generated correction variants
 - **src/components/MessageInput.tsx**: Input field with correction button and UNDO functionality
-- **src/components/CorrectionModal.tsx**: Modal displaying 3 AI-generated correction variants
-- **src/components/ChatMessages.tsx**: LINE-style message display component
-- **src/services/api.ts**: Axios-based API client for backend communication
+- **src/services/api.ts**: Comprehensive API client supporting all endpoints
 
 ### Key API Flow
-1. User inputs Japanese text in MessageInput
-2. "添削" (correction) button triggers CorrectionModal
-3. Modal calls `/api/correct` endpoint with text payload
-4. Backend processes through OpenAI service with specialized Japanese prompts
-5. Returns 3 variants: polite, casual, and corrected (with typo fixes + honorifics)
-6. User selects variant, which updates input field with UNDO history tracking
+1. User selects preferred AI model via ModelSelector (stored in database)
+2. User inputs Japanese text in MessageInput
+3. "添削" button triggers CorrectionModal with user's preferred model
+4. Backend routes request through AIModelFactory to appropriate AI service
+5. Returns 3 variants with model attribution and correction reasoning
+6. User can view past corrections via CorrectionHistory component
+7. Full correction history maintained per user with model tracking
 
 ### Database Schema
-- **correction_history**: Stores original/corrected text pairs with AI model metadata
-- **user_settings**: User preferences for AI model and correction style
-- Auto-creates SQLite database on startup via FastAPI event handler
+- **correction_history**: Original/corrected text pairs with ai_model_used tracking
+- **user_settings**: User preferences including preferred_ai_model and correction styles
+- Automatic table creation on startup with proper indexing
+
+### API Endpoints
+- `POST /api/correct` - Text correction with optional model override
+- `GET /api/models` - Available AI models with display names
+- `POST /api/user/model` - Set user's preferred AI model
+- `GET /api/user/{user_id}/settings` - Get user preferences
+- `GET /api/user/{user_id}/history` - Paginated correction history
 
 ## Technology Stack
 
 - **Frontend**: React + TypeScript + Vite + Axios + Lucide React icons
-- **Backend**: Python FastAPI + SQLAlchemy + OpenAI SDK + python-dotenv
+- **Backend**: Python FastAPI + SQLAlchemy + OpenAI SDK + Anthropic SDK
 - **Database**: SQLite with automatic table creation
+- **AI Models**: OpenAI GPT-4o, Claude 3 Sonnet
 - **Dependency Management**: uv for Python, npm for Node.js
 
-## Current Implementation Status (Phase 1 MVP)
+## Current Implementation Status (Phase 2 Complete)
 
-✅ **Completed Features:**
+✅ **Phase 1 Features:**
 - LINE-style chat UI with message bubbles
-- Japanese text correction via OpenAI GPT-4o
-- 3-variant correction display (polite/casual/corrected)
+- Japanese text correction with 3-variant display
 - UNDO functionality with history tracking
-- SQLite persistence for correction history
-- CORS-enabled API with automatic database initialization
+- SQLite persistence and CORS-enabled API
+
+✅ **Phase 2 Features:**
+- Multiple AI model support (OpenAI + Claude)
+- User-specific model preferences with persistent storage  
+- Enhanced correction history with pagination and model attribution
+- Model selector UI component with responsive design
+- Fallback handling for unavailable models
 
 **Architecture Notes:**
 - Uses uv for Python dependency management instead of pip/poetry
 - Frontend proxy configuration in vite.config.ts routes `/api/*` to backend
-- Circular import prevention: CorrectionVariant model defined in openai_service.py
+- Factory pattern prevents circular imports and enables clean AI provider abstraction
 - Database session management with dependency injection pattern
-- Japanese-specific OpenAI prompt engineering for business context
+- Japanese-specific prompt engineering optimized for both OpenAI and Claude
+- Responsive design with mobile-first approach for all Phase 2 components

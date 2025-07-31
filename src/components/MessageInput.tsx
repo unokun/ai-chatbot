@@ -5,9 +5,15 @@ import './MessageInput.css'
 
 interface MessageInputProps {
   onSendMessage: (text: string) => void
+  userId?: string
+  preferredModel?: string
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ 
+  onSendMessage, 
+  userId = 'anonymous',
+  preferredModel 
+}) => {
   const [text, setText] = useState('')
   const [showCorrectionModal, setShowCorrectionModal] = useState(false)
   const [textHistory, setTextHistory] = useState<string[]>([])
@@ -92,6 +98,8 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
       {showCorrectionModal && (
         <CorrectionModal
           originalText={text}
+          userId={userId}
+          preferredModel={preferredModel}
           onSelect={handleCorrectionSelect}
           onClose={() => setShowCorrectionModal(false)}
         />
