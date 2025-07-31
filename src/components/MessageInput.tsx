@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Send, Edit3 } from 'lucide-react'
 import CorrectionModal from './CorrectionModal'
+import CorrectionStyleSelector from './CorrectionStyleSelector'
 import './MessageInput.css'
 
 interface MessageInputProps {
@@ -17,6 +18,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [text, setText] = useState('')
   const [showCorrectionModal, setShowCorrectionModal] = useState(false)
   const [textHistory, setTextHistory] = useState<string[]>([])
+  const [correctionStyle, setCorrectionStyle] = useState('default')
 
   const handleSend = () => {
     if (text.trim()) {
@@ -55,6 +57,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
   return (
     <>
       <div className="message-input-container">
+        <div className="style-selector-row">
+          <CorrectionStyleSelector
+            selectedStyle={correctionStyle}
+            onStyleChange={setCorrectionStyle}
+            disabled={!text.trim()}
+          />
+        </div>
         <div className="input-wrapper">
           <textarea
             value={text}
@@ -100,6 +109,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           originalText={text}
           userId={userId}
           preferredModel={preferredModel}
+          correctionStyle={correctionStyle}
           onSelect={handleCorrectionSelect}
           onClose={() => setShowCorrectionModal(false)}
         />

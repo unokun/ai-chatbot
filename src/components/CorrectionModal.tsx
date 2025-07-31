@@ -7,6 +7,7 @@ interface CorrectionModalProps {
   originalText: string
   userId?: string
   preferredModel?: string
+  correctionStyle?: string
   onSelect: (correctedText: string) => void
   onClose: () => void
 }
@@ -15,6 +16,7 @@ const CorrectionModal: React.FC<CorrectionModalProps> = ({
   originalText,
   userId = 'anonymous',
   preferredModel,
+  correctionStyle = 'default',
   onSelect,
   onClose
 }) => {
@@ -31,7 +33,8 @@ const CorrectionModal: React.FC<CorrectionModalProps> = ({
         const response = await correctionAPI.correctText({
           text: originalText,
           user_id: userId,
-          preferred_model: preferredModel
+          preferred_model: preferredModel,
+          correction_style: correctionStyle
         })
         
         setVariants(response.variants)
@@ -44,7 +47,7 @@ const CorrectionModal: React.FC<CorrectionModalProps> = ({
     }
 
     fetchCorrections()
-  }, [originalText])
+  }, [originalText, correctionStyle])
 
   const handleVariantSelect = (variant: CorrectionVariant) => {
     onSelect(variant.text)

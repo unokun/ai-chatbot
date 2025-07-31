@@ -4,8 +4,13 @@ from pydantic import BaseModel
 from typing import List, Optional
 import os
 from dotenv import load_dotenv
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
+
 
 app = FastAPI(title="AI Message Correction API", version="1.0.0")
 
@@ -21,6 +26,7 @@ class CorrectionRequest(BaseModel):
     text: str
     user_id: Optional[str] = "anonymous"
     preferred_model: Optional[str] = None
+    correction_style: Optional[str] = "default"
 
 class ModelSelectionRequest(BaseModel):
     user_id: str
@@ -52,7 +58,8 @@ async def correct_message(request: CorrectionRequest):
         variants = await correction_service.correct_text(
             request.text, 
             request.user_id,
-            request.preferred_model
+            request.preferred_model,
+            request.correction_style
         )
         
         return CorrectionResponse(
@@ -154,6 +161,92 @@ async def get_correction_history(user_id: str, limit: int = 50, offset: int = 0)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
+
+@app.get("/api/admin/health")
+async def get_service_health():
+    """Get health status of all AI services"""
+    try:
+        from services.correction_service import CorrectionService
+        correction_service = CorrectionService()
+        health_status = correction_service.get_service_health()
+        return {"services": health_status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset-circuit-breaker/{service_name}")
+async def reset_circuit_breaker(service_name: str):
+    """Reset circuit breaker for a specific service"""
+    try:
+        from services.correction_service import CorrectionService
+        correction_service = CorrectionService()
+        success = correction_service.reset_service_circuit_breaker(service_name)
+        
+        if success:
+            return {"message": f"Circuit breaker reset for {service_name}"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to reset circuit breaker")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/cache-stats")
+async def get_cache_stats():
+    """Get cache performance statistics"""  
+    try:
+        from services.correction_service import CorrectionService
+        correction_service = CorrectionService()
+        cache_stats = await correction_service.get_cache_stats()
+        return {"cache": cache_stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/clear-cache")
+async def clear_cache():
+    """Clear correction cache"""
+    try:
+        from services.correction_service import CorrectionService
+        correction_service = CorrectionService()
+        success = await correction_service.clear_cache()
+        
+        if success:
+            return {"message": "Cache cleared successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to clear cache")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/correct/batch")
+async def correct_messages_batch(requests: List[CorrectionRequest]):
+    """Batch correction endpoint for multiple messages"""
+    try:
+        from services.correction_service import CorrectionService
+        correction_service = CorrectionService()
+        
+        batch_requests = [
+            {
+                'text': req.text,
+                'user_id': req.user_id,
+                'preferred_model': req.preferred_model,
+                'correction_style': req.correction_style,
+                'use_cache': True
+            }
+            for req in requests
+        ]
+        
+        batch_results = await correction_service.correct_text_batch(batch_requests)
+        
+        return [
+            CorrectionResponse(
+                original_text=req.text,
+                variants=[CorrectionVariant(
+                    text=v.text,
+                    type=v.type,
+                    reason=v.reason
+                ) for v in variants]
+            )
+            for req, variants in zip(requests, batch_results)
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.on_event("startup")
 async def startup_event():

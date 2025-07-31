@@ -15,6 +15,7 @@ export interface CorrectionRequest {
   text: string
   user_id?: string
   preferred_model?: string
+  correction_style?: string  
 }
 
 export interface ModelSelectionRequest {

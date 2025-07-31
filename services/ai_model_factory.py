@@ -2,6 +2,7 @@ from typing import Dict, Optional
 from .base_ai_service import BaseAIService
 from .openai_service import OpenAIService
 from .claude_service import ClaudeService
+from .local_llm_service import LocalLLMService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,8 @@ class AIModelFactory:
         """Get available AI models with their display names"""
         return {
             "openai-gpt4o": "OpenAI GPT-4o",
-            "claude-3-sonnet": "Claude 3 Sonnet"
+            "claude-3-sonnet": "Claude 3 Sonnet",
+            "local-llm": "ローカルLLM (オフライン)"
         }
     
     @classmethod
@@ -28,6 +30,8 @@ class AIModelFactory:
                     cls._models[model_name] = OpenAIService()
                 elif model_name == "claude-3-sonnet":
                     cls._models[model_name] = ClaudeService()
+                elif model_name == "local-llm":
+                    cls._models[model_name] = LocalLLMService()
                 else:
                     logger.error(f"Unknown model: {model_name}")
                     return None
