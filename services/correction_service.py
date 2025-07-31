@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict
-from .openai_service import CorrectionVariant
+from .correction_variant import CorrectionVariant
 from .ai_model_factory import AIModelFactory
 from .cache_service import CacheService
 from .error_handler import error_handler

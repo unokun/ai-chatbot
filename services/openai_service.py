@@ -4,14 +4,12 @@ from typing import List
 from pydantic import BaseModel
 import logging
 from .base_ai_service import BaseAIService
+from .correction_variant import CorrectionVariant
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class CorrectionVariant(BaseModel):
-    text: str
-    type: str
-    reason: str
+
 
 class OpenAIService(BaseAIService):
     def __init__(self):

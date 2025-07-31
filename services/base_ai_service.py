@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
-from .openai_service import CorrectionVariant
-
+# from .openai_service import CorrectionVariant
+from .correction_variant import CorrectionVariant
 class BaseAIService(ABC):
     """Abstract base class for AI correction services"""
     
