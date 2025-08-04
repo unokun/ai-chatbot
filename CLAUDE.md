@@ -14,6 +14,7 @@ This is an AI-powered Japanese message correction application with a LINE-style 
 - `npm install` - Install Node.js dependencies
 
 ### Development Servers
+- `ollama serve` - Start ollama if not running
 - `npm run dev:all` - Start both frontend and backend concurrently
 - `npm run dev` - Start frontend only (Vite dev server on port 5173)
 - `npm run backend` - Start backend only (FastAPI on port 8000)

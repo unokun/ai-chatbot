@@ -8,7 +8,7 @@ from .openai_service import CorrectionVariant
 logger = logging.getLogger(__name__)
 
 class LocalLLMService(BaseAIService):
-    def __init__(self, model_name: str = "rinna/japanese-gpt-neox-3.6b-instruction-sft"):
+    def __init__(self, model_name: str = "llama3.2:latest"):
         self.local_model = model_name
         self._client = None
         
@@ -27,13 +27,13 @@ class LocalLLMService(BaseAIService):
             
             # Check if model is available locally
             available_models = await asyncio.to_thread(client.list)
-            model_names = [model['name'] for model in available_models.get('models', [])]
-            
+            model_names = [model['model'] for model in available_models.get('models', [])]
             # Use a fallback model if the preferred one isn't available
             actual_model = self.local_model
+            # logger.info(f"actual_model: {actual_model}")
             if self.local_model not in model_names:
                 # Try common Japanese models
-                fallback_models = ['qwen2.5:3b-instruct', 'llama3.2:3b-instruct', 'gemma2:2b-instruct']
+                fallback_models = ['qwen2.5:3b-instruct', 'llama3.2:latest', 'gemma2:2b-instruct']
                 for fallback in fallback_models:
                     if fallback in model_names:
                         actual_model = fallback
@@ -71,11 +71,13 @@ class LocalLLMService(BaseAIService):
                             corrected_text = line.strip()
                             break
                     
+                    type = ["polite", "casual", "corrected"][i]
                     variant_type = ["丁寧な表現", "カジュアル表現", "誤字・文法修正"][i]
                     reason = f"ローカルLLM({actual_model})による{variant_type}"
                     
                     variants.append(CorrectionVariant(
                         text=corrected_text,
+                        type=type,
                         reason=reason
                     ))
                     
